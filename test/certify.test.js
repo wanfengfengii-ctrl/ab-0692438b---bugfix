@@ -167,6 +167,30 @@ describe('漏拍风险', () => {
     assert.equal(r.firstRisk.kind, 'gap');
   });
 
+  test('远距覆盖带不得放大容差吞掉漏拍：左右各 20 的漏拍必须报告', () => {
+    // R1 只覆盖 x∈[2,8]（顶/底边与工作区边界接触），R2/R3 远在 ±1e10；
+    // 远距带的坐标量级不得影响工作区内的碎屑/闭集容差。
+    const r = certify({
+      workarea: [[0, 0], [10, 0], [10, 10], [0, 10]],
+      strips: [
+        { cx: 5, cy: 5, w: 6, h: 10, angle: 0 },
+        { cx: 10000000000, cy: 0, w: 2, h: 2, angle: 0 },
+        { cx: -10000000000, cy: 0, w: 2, h: 2, angle: 0 },
+      ],
+    });
+    assert.equal(r.ok, false);
+    assert.ok(Math.abs(r.stats.gapArea - 40) < 1e-6, `gapArea=${r.stats.gapArea}`);
+    assert.ok(Math.abs(r.stats.coverageRatio - 0.6) < 1e-9);
+    assert.equal(r.firstRisk.kind, 'gap');
+    // 左右两块工作区内漏拍区域（x∈[0,2] 与 x∈[8,10]，各 20）都在报告中
+    assert.ok(r.gaps.some((g) => g.representative[0] < 2), '左侧漏拍缺失');
+    assert.ok(r.gaps.some((g) => g.representative[0] > 8), '右侧漏拍缺失');
+    // 边界接触（R1 顶/底边贴合工作区边界）不产生误报：无三重曝光，中层恰好一层
+    assert.equal(r.stats.tripleArea, 0);
+    assert.equal(r.triples.length, 0);
+    assert.equal(r.stats.maxMultiplicity, 1);
+  });
+
   test('旋转 1° 整数参数造成的 ~0.02 窄缝必须被连续判定发现', () => {
     // u-v 坐标系下工作区为矩形 u∈[45,65], v∈[-5,5]；两条角度 1° 整数中心矩形
     // u 覆盖 [-50,50] 与 [50.0022,150.0022]，留下宽约 0.0022、面积约 0.022 的窄缝

@@ -109,13 +109,14 @@ export function certify(input) {
   const workarea = input.workarea.map(([x, y]) => pt(x, y));
   const strips = input.strips.map((s, i) => ({ ...buildRect(s), params: s, index: i + 1 }));
 
-  // 坐标量级 → 各级容差
+  // 坐标量级 → 各级容差。仅由工作区决定：被分类的几何（单元、缝隙、接触点）
+  // 全部位于工作区内。覆盖带边线若切割工作区，其偏移 c 必为工作区量级；
+  // 远距覆盖带的边线不切割任何单元（快速通道整体保留），角点也被顶点
+  // 闭集检查过滤——其坐标量级不得放大碎屑/证据/闭集容差，否则真实
+  // 漏拍区域会被当作退化碎屑丢弃。
   let scale = 1;
   for (const p of workarea) {
     scale = Math.max(scale, Math.abs(p.x.toNumber()), Math.abs(p.y.toNumber()));
-  }
-  for (const s of input.strips) {
-    scale = Math.max(scale, Math.abs(s.cx) + s.w, Math.abs(s.cy) + s.h);
   }
   const S = D(scale);
   const eps = EPS;                            // 剖分/分类容差（1e-24）
