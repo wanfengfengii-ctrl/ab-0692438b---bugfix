@@ -109,13 +109,13 @@ export function certify(input) {
   const workarea = input.workarea.map(([x, y]) => pt(x, y));
   const strips = input.strips.map((s, i) => ({ ...buildRect(s), params: s, index: i + 1 }));
 
-  // 坐标量级 → 各级容差
+  // 坐标量级 → 各级容差。只取工作区坐标量级：覆盖带可合法地远离工作区
+  // （区外冗余带），若把远距覆盖带的中心坐标计入量级，碎屑面积阈值等
+  // 容差会被放大到吞掉真实单元，导致漏拍漏报。真正与工作区相交的边线，
+  // 其系数本就是工作区量级，64 位十进制精度足以覆盖。
   let scale = 1;
   for (const p of workarea) {
     scale = Math.max(scale, Math.abs(p.x.toNumber()), Math.abs(p.y.toNumber()));
-  }
-  for (const s of input.strips) {
-    scale = Math.max(scale, Math.abs(s.cx) + s.w, Math.abs(s.cy) + s.h);
   }
   const S = D(scale);
   const eps = EPS;                            // 剖分/分类容差（1e-24）

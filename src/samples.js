@@ -63,4 +63,16 @@ export const riskTriplePoint = {
   expect: { ok: false, firstKind: 'triple', firstShape: 'point' },
 };
 
-export const samples = [qualifiedBoundary, qualifiedRotated, riskGap, riskTriple, riskTriplePoint];
+/** 风险：远距覆盖带（区外 ±1e10 处）不得干扰判定——中央带两侧各漏拍 20 */
+export const riskRemoteGap = {
+  name: '风险·远距覆盖带漏拍',
+  workarea: [[0, 0], [10, 0], [10, 10], [0, 10]],
+  strips: [
+    { cx: 5, cy: 5, w: 6, h: 10, angle: 0 },           // 仅覆盖 x∈[2,8]，上下边与工作区边界重合
+    { cx: 10000000000, cy: 0, w: 2, h: 2, angle: 0 },  // 远距合法带（区外）
+    { cx: -10000000000, cy: 0, w: 2, h: 2, angle: 0 }, // 远距合法带（区外）
+  ],
+  expect: { ok: false, firstKind: 'gap', gapArea: 40 },
+};
+
+export const samples = [qualifiedBoundary, qualifiedRotated, riskGap, riskTriple, riskTriplePoint, riskRemoteGap];

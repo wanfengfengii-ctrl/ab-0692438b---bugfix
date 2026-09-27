@@ -167,6 +167,43 @@ describe('漏拍风险', () => {
     assert.equal(r.firstRisk.kind, 'gap');
   });
 
+  test('远距覆盖带（±1e10）不得放大容差吞掉漏拍区：左右各 20 必须上报', () => {
+    const r = certify({
+      workarea: [[0, 0], [10, 0], [10, 10], [0, 10]],
+      strips: [
+        { cx: 5, cy: 5, w: 6, h: 10, angle: 0 },           // 仅覆盖 x∈[2,8]，上下边与工作区边界重合
+        { cx: 10000000000, cy: 0, w: 2, h: 2, angle: 0 },  // 远距合法带（区外）
+        { cx: -10000000000, cy: 0, w: 2, h: 2, angle: 0 }, // 远距合法带（区外）
+      ],
+    });
+    assert.equal(r.ok, false);
+    assert.ok(Math.abs(r.stats.gapArea - 40) < 1e-6, `gapArea=${r.stats.gapArea}`);
+    assert.ok(Math.abs(r.stats.coverageRatio - 0.6) < 1e-9, `coverageRatio=${r.stats.coverageRatio}`);
+    assert.equal(r.firstRisk.kind, 'gap');
+    assert.equal(r.gaps.length > 0, true);
+    // 面积守恒：远距带不得破坏剖分完整性
+    const sum = r.stats.gapArea + r.stats.singleArea + r.stats.doubleArea + r.stats.tripleArea;
+    assert.ok(Math.abs(sum - r.stats.workArea) < 1e-6, `面积守恒 ${sum} vs ${r.stats.workArea}`);
+  });
+
+  test('远距场景下覆盖带与工作区边界接触不改变漏拍结论', () => {
+    // R4 右边缘 x=0 与工作区左边重合（闭集接触），不覆盖任何内部点
+    const r = certify({
+      workarea: [[0, 0], [10, 0], [10, 10], [0, 10]],
+      strips: [
+        { cx: 5, cy: 5, w: 6, h: 10, angle: 0 },
+        { cx: 10000000000, cy: 0, w: 2, h: 2, angle: 0 },
+        { cx: -10000000000, cy: 0, w: 2, h: 2, angle: 0 },
+        { cx: -1, cy: 5, w: 2, h: 10, angle: 0 },  // x∈[-2,0]，与工作区左边接触
+      ],
+    });
+    assert.equal(r.ok, false);
+    assert.ok(Math.abs(r.stats.gapArea - 40) < 1e-6, `gapArea=${r.stats.gapArea}`);
+    assert.equal(r.firstRisk.kind, 'gap');
+    assert.equal(r.stats.tripleArea, 0);
+    assert.equal(r.triples.length, 0);
+  });
+
   test('旋转 1° 整数参数造成的 ~0.02 窄缝必须被连续判定发现', () => {
     // u-v 坐标系下工作区为矩形 u∈[45,65], v∈[-5,5]；两条角度 1° 整数中心矩形
     // u 覆盖 [-50,50] 与 [50.0022,150.0022]，留下宽约 0.0022、面积约 0.022 的窄缝

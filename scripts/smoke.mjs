@@ -5,7 +5,7 @@
  */
 import { certify } from '../src/certify.js';
 import {
-  qualifiedBoundary, qualifiedRotated, riskGap, riskTriple, riskTriplePoint,
+  qualifiedBoundary, qualifiedRotated, riskGap, riskTriple, riskTriplePoint, riskRemoteGap,
 } from '../src/samples.js';
 
 let failures = 0;
@@ -67,6 +67,7 @@ scenario('风险 · 三重曝光区域', riskTriple, { ok: false, firstKind: 'tr
 scenario('风险 · 零面积三重接触点', riskTriplePoint, {
   ok: false, firstKind: 'triple', firstShape: 'point', tripleArea: 0,
 });
+scenario('风险 · 远距覆盖带（中心漏拍 40）', riskRemoteGap, { ok: false, firstKind: 'gap', gapArea: 40 });
 
 console.log(failures ? `\n冒烟失败：${failures} 项未通过` : '\n冒烟通过：全部场景符合预期');
 process.exit(failures ? 1 : 0);

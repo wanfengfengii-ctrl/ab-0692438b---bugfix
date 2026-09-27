@@ -177,14 +177,17 @@ function renderPlan(scene, report = null) {
   const X = (x) => x * scale + ox;
   const Y = (y) => -y * scale + oy;
 
-  // 网格
+  // 网格（步长随视野跨度自适应：远距覆盖带把视野拉到 ±1e10 时仍只画有限条线）
+  const span = Math.max(maxX - minX, maxY - minY);
+  let gridStep = 10;
+  while (span / gridStep > 50) gridStep *= 10;
   ctx.strokeStyle = '#172230';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  for (let gx = Math.ceil(minX / 10) * 10; gx <= maxX; gx += 10) {
+  for (let gx = Math.ceil(minX / gridStep) * gridStep; gx <= maxX; gx += gridStep) {
     ctx.moveTo(X(gx), Y(minY)); ctx.lineTo(X(gx), Y(maxY));
   }
-  for (let gy = Math.ceil(minY / 10) * 10; gy <= maxY; gy += 10) {
+  for (let gy = Math.ceil(minY / gridStep) * gridStep; gy <= maxY; gy += gridStep) {
     ctx.moveTo(X(minX), Y(gy)); ctx.lineTo(X(maxX), Y(gy));
   }
   ctx.stroke();
